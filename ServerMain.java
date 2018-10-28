@@ -14,13 +14,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.rmi.ConnectException;
 import java.util.Scanner;
+import java.util.Vector;
 
 public class ServerMain implements Runnable {
 	private Thread t = null;
 	private ServerSocket serverSocket = null;
 	private ServerThread clientThread = null;
+	private Vector<ServerThread> myClientThreads;
 	
 	public ServerMain(int portNumber) {
+		
 		try {
 			//Opens ServerSocket on specified port
 			System.out.println("Opening server on port " + portNumber + "...");
@@ -59,6 +62,16 @@ public class ServerMain implements Runnable {
 		}
 	}
 	
+	
+	public synchronized void handle(int ID, String message) {
+		System.out.println("Handling message: " + message + " from " + ID);
+		if(message.equals(".quit")) {
+			
+		}
+		else {
+			
+		}
+	}
 	
 	//Starts the thread
 	public void start() {
