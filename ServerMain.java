@@ -1,10 +1,11 @@
-/**
+/** 
  * Server code for simple chat over sockets program
  * @author Wojciech Rozowski (wkr1u18)
  */
 
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -14,41 +15,65 @@ import java.net.Socket;
 import java.rmi.ConnectException;
 import java.util.Scanner;
 
-public class ServerMain {
+public class ServerMain implements Runnable {
+	private Thread t = null;
+	private ServerSocket serverSocket = null;
+	private ServerThread clientThread = null;
 	
-	public static void main(String[] args) {
-		ServerSocket myServerSocket;
-		Scanner myScanner = new Scanner(System.in);
-		//Gets initial port number
-		System.out.println("Enter port number: ");
-		int portNumber = myScanner.nextInt();
+	public ServerMain(int portNumber) {
 		try {
-			//Opens socket on specified port
-			myServerSocket = new ServerSocket(portNumber);
-			System.out.println("Opened connection on port: " + portNumber);
-			while(true) {
-				//Waits for connection from client
-				System.out.println("Waiting...");
-				Socket clientSocket = myServerSocket.accept();
-				System.out.println("Client connected to server");
-				//When connected sets up PrintWriter and BufferedReader using Socket methods
-				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				String inputLine;
-				//While server receives a message from client
-				while((inputLine = in.readLine()) != null) {
-					//Puts message on screen
-					System.out.println("Received messsage: " + inputLine + " from: " + clientSocket.toString());
-					//Sends line to host
-					out.println(inputLine);
-				}
-				
-				
+			//Opens ServerSocket on specified port
+			System.out.println("Opening server on port " + portNumber + "...");
+			serverSocket = new ServerSocket(portNumber);
+			System.out.println("Server started.");
+			//Calls thread start method
+			start();
+		}
+		catch (IOException ioe) {
+			System.out.println(ioe);
+		}
+	}
+	
+	//Thread run method
+	public void run() {
+		while (t!=null) {
+			try {
+				System.out.println("Waiting for connection from client...");
+				addNewThread(serverSocket.accept());
+			}
+			catch (IOException ioe){
+				System.out.println(ioe);
 			}
 		}
-		catch (IOException e) {
-			System.out.println("Couldn't open server on port: " + portNumber);
+	}
+	
+	public void addNewThread(Socket clientSocket) {
+		System.out.println("Connected to client.");
+		clientThread = new ServerThread(this, clientSocket);
+		try {
+			clientThread.open();
+			clientThread.start();
+		}
+		catch(IOException ioe) {
+			System.out.println(ioe);
+		}
+	}
+	
+	
+	//Starts the thread
+	public void start() {
+		if(t == null) {
+			t = new Thread(this);
+			t.start();
 		}
 	}
 
+	public static void main(String[] args) {
+		System.out.println("hello");
+		ServerMain sm = new ServerMain(1027);
+	}
+
 }
+/*
+		PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+*/
