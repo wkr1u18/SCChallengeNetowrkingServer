@@ -13,6 +13,9 @@ import java.lang.Object;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.rmi.ConnectException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -20,7 +23,8 @@ public class ServerMain implements Runnable {
 	private Thread t = null;
 	private ServerSocket serverSocket = null;
 	private ServerThread clientThread = null;
-	private Vector<ServerThread> myClientThreads;
+	private HashMap<Integer, ServerThread> connectedClients = new HashMap<Integer, ServerThread>();
+	private HashMap<Integer, String> nickMap = new HashMap<Integer,String>(); 
 	
 	public ServerMain(int portNumber) {
 		
@@ -52,10 +56,15 @@ public class ServerMain implements Runnable {
 	
 	public void addNewThread(Socket clientSocket) {
 		System.out.println("Connected to client.");
-		clientThread = new ServerThread(this, clientSocket);
+		Integer portNumber = new Integer(clientSocket.getPort());
+		connectedClients.put(portNumber, new ServerThread(this, clientSocket));
+		
+		nickMap.put(portNumber, "user" + portNumber.toString());
 		try {
-			clientThread.open();
-			clientThread.start();
+			
+			connectedClients.get(portNumber).open();
+			connectedClients.get(portNumber).start();
+
 		}
 		catch(IOException ioe) {
 			System.out.println(ioe);
@@ -63,13 +72,34 @@ public class ServerMain implements Runnable {
 	}
 	
 	
-	public synchronized void handle(int ID, String message) {
+	public synchronized void handle (int ID, String message) {
 		System.out.println("Handling message: " + message + " from " + ID);
 		if(message.equals(".quit")) {
-			
+			deliver(ID, "has disconnected");
+			connectedClients.get(ID).send(".quitconfirm");
+			connectedClients.remove(ID);
+			nickMap.remove(ID);
 		}
 		else {
 			
+			if(message.length()>=8 && message.substring(0, 8).equals(".setnick")) {
+				String[] command = message.split(" ",2);
+				nickMap.put(ID, command[1]);
+				System.out.println("Set nick: " + command[1] + " for user with id: " + ID);
+			}
+			else {
+				deliver(ID, message);
+			}
+		}
+	}
+	
+	public synchronized void deliver (int orginatorID, String message) {
+		Iterator it = connectedClients.entrySet().iterator();
+		while(it.hasNext()) {
+			Map.Entry pair = (Map.Entry) it.next();
+			if(!pair.getKey().equals(orginatorID)) {
+				connectedClients.get(pair.getKey()).send("["+ nickMap.get(orginatorID) + "] " + message);
+			}
 		}
 	}
 	
@@ -82,8 +112,9 @@ public class ServerMain implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("hello");
-		ServerMain sm = new ServerMain(1027);
+		System.out.println("Welcome to server! Please give the port number: ");
+		Scanner textIn = new Scanner(System.in);
+		ServerMain sm = new ServerMain(textIn.nextInt());
 	}
 
 }

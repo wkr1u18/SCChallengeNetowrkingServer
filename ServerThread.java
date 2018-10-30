@@ -67,8 +67,10 @@ public class ServerThread extends Thread{
 		}
 	}
 	
+	
 	//Sends message to host
 	public void send(String msg) {
+		System.out.println("Sending " + msg + " to " + new Integer(threadID).toString());
 		try {
 			out.println(msg);
 		}
